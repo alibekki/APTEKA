@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}APTEKA Admin{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">Rx</div>
+            <div class="brand-name">APTEKA<br><span>Admin</span></div>
+        </div>
+        <nav class="nav">
+            <div class="nav-group">
+                <div class="nav-group-title">Обзор</div>
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <span class="ico">◉</span> Дашборд
+                </a>
+                <a href="{{ url_for('analytics_page') }}" class="nav-item">
+                    <span class="ico">◊</span> Аналитика
+                </a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Каталог</div>
+                <a href="{{ url_for('products_page') }}" class="nav-item">
+                    <span class="ico">▤</span> Товары
+                </a>
+                <a href="{{ url_for('low_stock_page') }}" class="nav-item">
+                    <span class="ico">⚠</span> Мало на складе
+                </a>
+                <a href="{{ url_for('expiring_page') }}" class="nav-item">
+                    <span class="ico">⏳</span> Истекают
+                </a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Клиенты</div>
+                <a href="{{ url_for('users_page') }}" class="nav-item">
+                    <span class="ico">◐</span> Пользователи
+                </a>
+                <a href="{{ url_for('conversations_page') }}" class="nav-item">
+                    <span class="ico">◇</span> Диалоги
+                </a>
+                <a href="{{ url_for('favorites_page') }}" class="nav-item">
+                    <span class="ico">★</span> Избранное
+                </a>
+                <a href="{{ url_for('notifications_page') }}" class="nav-item">
+                    <span class="ico">⟳</span> Подписки
+                </a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Админ</div>
+                <a href="{{ url_for('system_page') }}" class="nav-item">
+                    <span class="ico">⚙</span> Система
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack">
+                    {% for cat, msg in messages %}
+                        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

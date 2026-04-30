@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Диалоги — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Диалоги</div>
+        <div class="page-subtitle">Переписки клиентов с ботом — {{ chats|length }} активных</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-body flush">
+        {% if chats %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Пользователь</th>
+                    <th>Платформа</th>
+                    <th class="num">Сообщений</th>
+                    <th>Последнее</th>
+                    <th>Когда</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in chats %}
+                <tr style="cursor:pointer" onclick="location.href='{{ url_for('conversation_detail', chat_id=c.chat_id) }}'">
+                    <td>
+                        <a href="{{ url_for('conversation_detail', chat_id=c.chat_id) }}">
+                            {{ c.first_name or '—' }}{% if c.last_name %} {{ c.last_name }}{% endif %}
+                        </a>
+                        {% if c.username %}<div class="small dim">@{{ c.username }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% if c.platform == 'whatsapp' %}
+                        <span class="badge badge-success">WhatsApp</span>
+                        {% else %}
+                        <span class="badge badge-accent">Telegram</span>
+                        {% endif %}
+                    </td>
+                    <td class="num strong">{{ c.msg_count }}</td>
+                    <td class="muted small truncate">{{ (c.last_message or '—')[:90] }}</td>
+                    <td class="muted small">{{ c.last_message_at|ts(19) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Ещё никто не писал боту</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

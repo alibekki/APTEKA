@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Диалог — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">
+            {% if user %}{{ user.first_name or '—' }}{% if user.last_name %} {{ user.last_name }}{% endif %}
+            {% else %}{{ chat_id }}{% endif %}
+        </div>
+        <div class="page-subtitle">
+            <span class="mono">{{ chat_id }}</span>
+            {% if user and user.platform %}
+            ·
+            {% if user.platform == 'whatsapp' %}
+            <span class="badge badge-success">WhatsApp</span>
+            {% else %}
+            <span class="badge badge-accent">Telegram</span>
+            {% endif %}
+            {% endif %}
+            · {{ messages|length }} сообщений
+        </div>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('conversations_page') }}" class="btn btn-ghost">← К списку</a>
+        {% if user %}
+        <a href="{{ url_for('user_detail', chat_id=user.chat_id) }}" class="btn">Карточка</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-body">
+        {% if messages %}
+        <div class="chat">
+            {% for m in messages %}
+            <div class="bubble bubble-{{ m.role }}">
+                {{ m.content }}
+                <div class="bubble-meta">{{ m.created_at|ts(19) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">В этом диалоге пока нет сообщений</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+# Local artefacts that must NOT bake into the image
+.env
+.env.*
+data/
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+*.log
+*.pdf
+доступ*.txt
+CLAUDE.md
+DEPLOY.md
+README.md
+.claude/
+.cursor/
+.pytest_cache/
+.dockerignore

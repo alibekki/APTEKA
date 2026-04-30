@@ -1,0 +1,55 @@
+# Fly.io config for APTEKA pharmacy bot.
+# Deploy: `fly launch --no-deploy`  → tweak  → `fly deploy`
+# Region: pick one close to your customers (ams=Amsterdam, fra=Frankfurt for KZ).
+
+app = "apteka-bot"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Internal port the Flask admin/webhook listens on inside the container
+  FLASK_PORT = "5001"
+  # Persistent data location — must match the volume mount below
+  DATA_DIR = "/data"
+
+# Persistent SQLite + embeddings cache. Fly free tier includes 3 GB of volumes.
+# 1 GB is plenty for ~5000 products with embeddings (~50-80 MB total).
+[[mounts]]
+  source = "apteka_data"
+  destination = "/data"
+
+# HTTP service: Wazzup webhook (POST /wazzup/webhook) + admin panel (/, /products,
+# /analytics, etc.) Fly auto-issues a *.fly.dev cert and TLS-terminates for us.
+[http_service]
+  internal_port = 5001
+  force_https = true
+  # CRITICAL: never auto-stop or auto-start. The Telegram bot uses long-poll
+  # which is outbound HTTP — Fly's auto-stop heuristic doesn't see it as
+  # activity and would put the machine to sleep, breaking polling and webhooks.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "10s"
+    path = "/api/stats"
+
+# Single small VM is enough for a low-volume pharmacy bot. 512 MB lives within
+# the $5/mo Fly credit on shared-cpu-1x. Bump to 1 GB if you start indexing
+# 10k+ products with embeddings.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[deploy]
+  # Avoid the brief downtime of "rolling" — for a single-instance bot, the
+  # release command boots the new image then swaps. SQLite on a volume can
+  # only be opened by one process at a time anyway.
+  strategy = "immediate"

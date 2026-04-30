@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Дашборд</div>
+        <div class="page-subtitle">Обзор аптеки в реальном времени</div>
+    </div>
+    <div class="page-actions">
+        {% if last_refresh %}
+        <span class="muted small">Последнее обновление склада: {{ last_refresh|ts(19) }}</span>
+        {% endif %}
+        <a href="{{ url_for('analytics_page') }}" class="btn btn-ghost">Полная аналитика →</a>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Всего товаров</div>
+        <div class="kpi-value">{{ stats.total_products }}</div>
+        <div class="kpi-sub">
+            {{ stats.in_stock }} в наличии · {{ stats.out_of_stock }} нет
+        </div>
+    </div>
+    <div class="kpi success">
+        <div class="kpi-label">Сумма остатков</div>
+        <div class="kpi-value">{{ stats.total_value|money }} ₸</div>
+        <div class="kpi-sub">по розничным ценам</div>
+    </div>
+    <div class="kpi warn">
+        <div class="kpi-label">Рецептурных</div>
+        <div class="kpi-value">{{ stats.prescription }}</div>
+        <div class="kpi-sub">
+            {% if stats.total_products %}
+            {{ "%.0f"|format(stats.prescription / stats.total_products * 100) }}% ассортимента
+            {% endif %}
+        </div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Пользователей</div>
+        <div class="kpi-value">{{ stats.total_users }}</div>
+        <div class="kpi-sub">Telegram + WhatsApp</div>
+    </div>
+    <div class="kpi accent">
+        <div class="kpi-label">Запросов сегодня</div>
+        <div class="kpi-value">{{ stats.searches_today }}</div>
+        <div class="kpi-sub">
+            7д: {{ stats.searches_7d }} · 30д: {{ stats.searches_30d }}
+        </div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Всего запросов</div>
+        <div class="kpi-value">{{ stats.total_searches }}</div>
+        <div class="kpi-sub">за всё время</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Запросы за 14 дней</div>
+                <div class="panel-subtitle">Динамика активности пользователей</div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="chart-wrap">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">По платформам</div>
+                <div class="panel-subtitle">Пользователи и запросы</div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="chart-wrap">
+                <canvas id="platformChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Популярные запросы</div>
+                <div class="panel-subtitle">Что ищут клиенты</div>
+            </div>
+            <a href="{{ url_for('analytics_page') }}" class="btn btn-ghost btn-sm">Все</a>
+        </div>
+        <div class="panel-body flush">
+            {% if popular %}
+            <table>
+                <thead>
+                    <tr><th>Запрос</th><th class="num">Кол-во</th><th class="num">Ср. найдено</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in popular %}
+                    <tr>
+                        <td>{{ q.query }}</td>
+                        <td class="num strong">{{ q.count }}</td>
+                        <td class="num muted">{{ "%.1f"|format(q.avg_results) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Ещё нет данных</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Не нашли в базе</div>
+                <div class="panel-subtitle">Спрос, который вы упускаете</div>
+            </div>
+        </div>
+        <div class="panel-body flush">
+            {% if zero_results %}
+            <table>
+                <thead>
+                    <tr><th>Запрос</th><th class="num">Попыток</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in zero_results %}
+                    <tr>
+                        <td>{{ q.query }}</td>
+                        <td class="num"><span class="badge badge-warn">{{ q.count }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Все запросы находили товар</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Лента активности</div>
+                <div class="panel-subtitle">Последние запросы</div>
+            </div>
+            <a href="{{ url_for('conversations_page') }}" class="btn btn-ghost btn-sm">Диалоги</a>
+        </div>
+        <div class="panel-body flush">
+            {% if recent_activity %}
+            <div class="feed">
+                {% for a in recent_activity %}
+                <div class="feed-item">
+                    <div class="feed-avatar">
+                        {% if a.platform == 'whatsapp' %}W{% else %}T{% endif %}
+                    </div>
+                    <div class="feed-body">
+                        <div class="feed-title">{{ a.query }}</div>
+                        <div class="feed-meta">
+                            {% if a.chat_id %}
+                            <a href="{{ url_for('user_detail', chat_id=a.chat_id) }}" class="muted">
+                                {{ a.first_name or a.chat_id }}{% if a.last_name %} {{ a.last_name }}{% endif %}
+                            </a> ·
+                            {% endif %}
+                            <span class="badge badge-muted">{{ a.platform|platform_badge }}</span> ·
+                            {% if a.results_count > 0 %}
+                            <span class="badge badge-success">{{ a.results_count }} найдено</span>
+                            {% else %}
+                            <span class="badge badge-warn">не найдено</span>
+                            {% endif %}
+                            · {{ a.created_at|ts(19) }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">Ещё нет активности</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stack">
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Топ-избранное</div>
+                    <div class="panel-subtitle">Что клиенты сохраняют</div>
+                </div>
+                <a href="{{ url_for('favorites_page') }}" class="btn btn-ghost btn-sm">Все</a>
+            </div>
+            <div class="panel-body flush">
+                {% if top_fav %}
+                <table>
+                    <tbody>
+                        {% for p in top_fav %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('product_detail', guid=p.guid) }}">{{ p.name[:50] }}</a>
+                                {% if p.is_prescription %}<span class="badge badge-rx">Rx</span>{% endif %}
+                            </td>
+                            <td class="num"><span class="badge badge-accent">★ {{ p.fav_count }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">Ещё нет избранных</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Ждут поступления</div>
+                    <div class="panel-subtitle">Дефицитный спрос</div>
+                </div>
+                <a href="{{ url_for('notifications_page') }}" class="btn btn-ghost btn-sm">Все</a>
+            </div>
+            <div class="panel-body flush">
+                {% if most_wanted %}
+                <table>
+                    <tbody>
+                        {% for p in most_wanted %}
+                        <tr>
+                            <td>{{ p.product_name[:50] }}</td>
+                            <td class="num"><span class="badge badge-warn">{{ p.subscribers }} чел.</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">Нет активных подписок</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">AI-обогащение</div>
+                    <div class="panel-subtitle">Действующие вещества и эмбеддинги</div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="stack">
+                    <div>
+                        <div class="row" style="justify-content:space-between">
+                            <span class="muted small">Действующие вещества</span>
+                            <span class="small strong">{{ enrichment.enriched }} / {{ enrichment.total }}</span>
+                        </div>
+                        <div class="progress" style="margin-top:6px">
+                            {% set pct_e = (enrichment.enriched / enrichment.total * 100) if enrichment.total else 0 %}
+                            <div class="progress-bar" style="width: {{ pct_e }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="row" style="justify-content:space-between">
+                            <span class="muted small">Эмбеддинги</span>
+                            <span class="small strong">{{ enrichment.embedded }} / {{ enrichment.total }}</span>
+                        </div>
+                        <div class="progress" style="margin-top:6px">
+                            {% set pct_v = (enrichment.embedded / enrichment.total * 100) if enrichment.total else 0 %}
+                            <div class="progress-bar" style="width: {{ pct_v }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#8691a8';
+Chart.defaults.borderColor = '#1f2636';
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+const timelineData = {{ timeline|tojson }};
+new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: {
+        labels: timelineData.map(d => d.day.slice(5)),
+        datasets: [{
+            label: 'Запросы',
+            data: timelineData.map(d => d.cnt),
+            borderColor: '#4aa3ff',
+            backgroundColor: 'rgba(74, 163, 255, 0.1)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#4aa3ff',
+        }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+const platformData = {{ platform_split|tojson }};
+new Chart(document.getElementById('platformChart'), {
+    type: 'bar',
+    data: {
+        labels: platformData.platforms.map(p => p === 'whatsapp' ? 'WhatsApp' : 'Telegram'),
+        datasets: [
+            {
+                label: 'Пользователи',
+                data: platformData.users,
+                backgroundColor: 'rgba(74, 163, 255, 0.7)',
+                borderRadius: 6,
+            },
+            {
+                label: 'Запросы',
+                data: platformData.searches,
+                backgroundColor: 'rgba(52, 211, 153, 0.7)',
+                borderRadius: 6,
+            }
+        ]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+</script>
+{% endblock %}

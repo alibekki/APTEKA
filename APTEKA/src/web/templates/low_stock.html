@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Мало на складе — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Мало на складе</div>
+        <div class="page-subtitle">Товары с остатком ≤ {{ threshold }}</div>
+    </div>
+    <form method="GET" action="{{ url_for('low_stock_page') }}" class="form-row">
+        <label class="muted small">Порог:</label>
+        <input type="number" name="threshold" value="{{ threshold }}" class="input sm" min="1" max="100" style="width:80px">
+        <button type="submit" class="btn btn-sm">Применить</button>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="panel-body flush">
+        {% if products %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th class="num">Остаток</th>
+                    <th class="num">Цена</th>
+                    <th>Производитель</th>
+                    <th>Срок годности</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                {% set avail = p.rest_abs - p.rest_rezerv %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('product_detail', guid=p.guid) }}">{{ p.name }}</a>
+                        {% if p.is_prescription %}<span class="badge badge-rx">Rx</span>{% endif %}
+                    </td>
+                    <td class="num">
+                        {% if avail <= 1 %}
+                        <span class="badge badge-danger">{{ avail }} шт</span>
+                        {% else %}
+                        <span class="badge badge-warn">{{ avail }} шт</span>
+                        {% endif %}
+                    </td>
+                    <td class="num strong">{{ p.price|money }} ₸</td>
+                    <td><span class="truncate muted">{{ p.producer or '—' }}</span></td>
+                    <td class="muted">{{ p.expiration_date or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Нет товаров с таким остатком</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

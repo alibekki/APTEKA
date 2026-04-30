@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Подписки — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Подписки на поступление</div>
+        <div class="page-subtitle">Клиенты, ждущие пополнения товаров</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="panel">
+        <div class="panel-header"><div class="panel-title">Все активные подписки</div></div>
+        <div class="panel-body flush">
+            {% if active %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Клиент</th>
+                        <th>Товар</th>
+                        <th class="num">На складе</th>
+                        <th>Подписался</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in active %}
+                    {% set avail = (n.rest_abs or 0) - (n.rest_rezerv or 0) %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('user_detail', chat_id=n.chat_id) }}">
+                                {{ n.first_name or n.chat_id }}
+                            </a>
+                            {% if n.platform == 'whatsapp' %}
+                            <span class="badge badge-success">WA</span>
+                            {% else %}
+                            <span class="badge badge-accent">TG</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('product_detail', guid=n.product_guid) }}">
+                                {{ n.product_name[:50] }}
+                            </a>
+                        </td>
+                        <td class="num">
+                            {% if avail > 0 %}
+                            <span class="badge badge-success">{{ avail }}</span>
+                            {% else %}
+                            <span class="badge badge-muted">нет</span>
+                            {% endif %}
+                        </td>
+                        <td class="muted small">{{ n.created_at|ts(19) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет активных подписок</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Дефицитный спрос</div>
+                <div class="panel-subtitle">Что клиенты ждут больше всего</div>
+            </div>
+        </div>
+        <div class="panel-body flush">
+            {% if most_wanted %}
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Товар</th><th class="num">Подписчиков</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in most_wanted %}
+                    <tr>
+                        <td class="dim">{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('product_detail', guid=p.product_guid) }}">
+                                {{ p.product_name[:60] }}
+                            </a>
+                        </td>
+                        <td class="num"><span class="badge badge-warn">{{ p.subscribers }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет данных</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

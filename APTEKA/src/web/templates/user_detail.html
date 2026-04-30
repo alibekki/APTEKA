@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}{{ user.first_name or user.chat_id }} — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">
+            {{ user.first_name or '—' }}{% if user.last_name %} {{ user.last_name }}{% endif %}
+            {% if user.platform == 'whatsapp' %}
+            <span class="badge badge-success">WhatsApp</span>
+            {% else %}
+            <span class="badge badge-accent">Telegram</span>
+            {% endif %}
+        </div>
+        <div class="page-subtitle">
+            <span class="mono">{{ user.chat_id }}</span>
+            {% if user.username %}· @{{ user.username }}{% endif %}
+        </div>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('users_page') }}" class="btn btn-ghost">← К списку</a>
+        <a href="{{ url_for('conversation_detail', chat_id=user.chat_id) }}" class="btn">Диалог</a>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi accent">
+        <div class="kpi-label">Запросов</div>
+        <div class="kpi-value">{{ stats.searches }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Сообщений</div>
+        <div class="kpi-value">{{ stats.messages }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Избранное</div>
+        <div class="kpi-value">★ {{ stats.favorites }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Подписки</div>
+        <div class="kpi-value">{{ stats.notifications }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Регистрация</div>
+        <div class="kpi-value" style="font-size:1rem">{{ user.created_at|ts(16) }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Активность</div>
+        <div class="kpi-value" style="font-size:1rem">{{ user.last_active|ts(16) }}</div>
+    </div>
+</div>
+
+<div class="grid grid-equal">
+    <div class="panel">
+        <div class="panel-header"><div class="panel-title">История поиска</div></div>
+        <div class="panel-body flush" style="max-height:400px; overflow-y:auto">
+            {% if history %}
+            <table>
+                <thead><tr><th>Запрос</th><th class="num">Найдено</th><th>Когда</th></tr></thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td>{{ h.query }}</td>
+                        <td class="num">
+                            {% if h.results_count > 0 %}
+                            <span class="badge badge-success">{{ h.results_count }}</span>
+                            {% else %}
+                            <span class="badge badge-warn">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="small muted">{{ h.created_at|ts(19) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет запросов</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><div class="panel-title">Избранное</div></div>
+        <div class="panel-body flush" style="max-height:400px; overflow-y:auto">
+            {% if favorites %}
+            <table>
+                <tbody>
+                    {% for p in favorites %}
+                    {% set avail = p.rest_abs - p.rest_rezerv %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('product_detail', guid=p.guid) }}">{{ p.name }}</a>
+                            {% if p.is_prescription %}<span class="badge badge-rx">Rx</span>{% endif %}
+                        </td>
+                        <td class="num">{{ p.price|money }} ₸</td>
+                        <td class="num">
+                            {% if avail > 0 %}
+                            <span class="badge badge-success">{{ avail }} шт</span>
+                            {% else %}
+                            <span class="badge badge-muted">нет</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Ничего не сохранено</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="panel" style="margin-top:1rem">
+    <div class="panel-header"><div class="panel-title">Подписки на поступление</div></div>
+    <div class="panel-body flush">
+        {% if notifications %}
+        <table>
+            <thead><tr><th>Товар</th><th>Дата подписки</th></tr></thead>
+            <tbody>
+                {% for n in notifications %}
+                <tr>
+                    <td>{{ n.product_name }}</td>
+                    <td class="muted small">{{ n.created_at|ts(19) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Нет активных подписок</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel" style="margin-top:1rem">
+    <div class="panel-header">
+        <div class="panel-title">Переписка с ботом</div>
+        <a href="{{ url_for('conversation_detail', chat_id=user.chat_id) }}" class="btn btn-ghost btn-sm">Полностью →</a>
+    </div>
+    <div class="panel-body" style="max-height:500px; overflow-y:auto">
+        {% if conversation %}
+        <div class="chat">
+            {% for m in conversation[-30:] %}
+            <div class="bubble bubble-{{ m.role }}">
+                {{ m.content }}
+                <div class="bubble-meta">{{ m.created_at|ts(19) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">Переписки нет</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

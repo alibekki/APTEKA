@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Истекают — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Истекающие сроки годности</div>
+        <div class="page-subtitle">Товары со сроком ≤ {{ days }} дней</div>
+    </div>
+    <form method="GET" action="{{ url_for('expiring_page') }}" class="form-row">
+        <label class="muted small">Окно:</label>
+        <select name="days" class="select">
+            <option value="30" {% if days == 30 %}selected{% endif %}>30 дней</option>
+            <option value="60" {% if days == 60 %}selected{% endif %}>60 дней</option>
+            <option value="90" {% if days == 90 %}selected{% endif %}>90 дней</option>
+            <option value="180" {% if days == 180 %}selected{% endif %}>180 дней</option>
+            <option value="365" {% if days == 365 %}selected{% endif %}>365 дней</option>
+        </select>
+        <button type="submit" class="btn btn-sm">Применить</button>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="panel-body flush">
+        {% if products %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Срок</th>
+                    <th class="num">Осталось дней</th>
+                    <th class="num">На складе</th>
+                    <th class="num">Цена</th>
+                    <th class="num">Сумма</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                {% set avail = p.rest_abs - p.rest_rezerv %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('product_detail', guid=p.guid) }}">{{ p.name }}</a>
+                        {% if p.is_prescription %}<span class="badge badge-rx">Rx</span>{% endif %}
+                    </td>
+                    <td class="muted">{{ p.expiration_date }}</td>
+                    <td class="num">
+                        {% if p._days_left <= 7 %}
+                        <span class="badge badge-danger">{{ p._days_left }} д</span>
+                        {% elif p._days_left <= 30 %}
+                        <span class="badge badge-warn">{{ p._days_left }} д</span>
+                        {% else %}
+                        <span class="badge badge-muted">{{ p._days_left }} д</span>
+                        {% endif %}
+                    </td>
+                    <td class="num">{{ avail }} шт</td>
+                    <td class="num">{{ p.price|money }} ₸</td>
+                    <td class="num strong">{{ (p.price * avail)|money }} ₸</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Нет товаров, истекающих в этот срок</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

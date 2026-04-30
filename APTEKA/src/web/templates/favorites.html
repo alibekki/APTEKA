@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Избранное — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Топ избранного</div>
+        <div class="page-subtitle">Что клиенты сохраняют чаще всего</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-body flush">
+        {% if top %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Товар</th>
+                    <th class="num">Сохранений</th>
+                    <th class="num">Цена</th>
+                    <th class="num">Наличие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in top %}
+                {% set avail = p.rest_abs - p.rest_rezerv %}
+                <tr>
+                    <td class="dim">{{ loop.index }}</td>
+                    <td>
+                        <a href="{{ url_for('product_detail', guid=p.guid) }}">{{ p.name }}</a>
+                        {% if p.is_prescription %}<span class="badge badge-rx">Rx</span>{% endif %}
+                    </td>
+                    <td class="num"><span class="badge badge-accent">★ {{ p.fav_count }}</span></td>
+                    <td class="num strong">{{ p.price|money }} ₸</td>
+                    <td class="num">
+                        {% if avail > 0 %}
+                        <span class="badge badge-success">{{ avail }} шт</span>
+                        {% else %}
+                        <span class="badge badge-danger">нет</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Пока никто не добавил товары в избранное</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

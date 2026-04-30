@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">{{ product.name }}</div>
+        <div class="page-subtitle">
+            {% if product.is_prescription %}<span class="badge badge-rx">Рецептурный</span>{% endif %}
+            {% if product.active_ingredient %}
+            <span class="muted">{{ product.active_ingredient }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('products_page') }}" class="btn btn-ghost">← К списку</a>
+    </div>
+</div>
+
+{% set avail = product.rest_abs - product.rest_rezerv %}
+<div class="kpi-grid">
+    <div class="kpi {% if avail > 0 %}success{% else %}danger{% endif %}">
+        <div class="kpi-label">Доступно</div>
+        <div class="kpi-value">{{ avail }} шт</div>
+        <div class="kpi-sub">
+            {% if product.rest_rezerv %}из {{ product.rest_abs }} ({{ product.rest_rezerv }} в резерве){% else %}остаток{% endif %}
+        </div>
+    </div>
+    <div class="kpi accent">
+        <div class="kpi-label">Цена продажи</div>
+        <div class="kpi-value">{{ product.price|money }} ₸</div>
+        {% if product.price_buy %}
+        <div class="kpi-sub">закуп {{ product.price_buy|money }} ₸</div>
+        {% endif %}
+    </div>
+    {% if product.price_limit and product.price_limit > 0 %}
+    <div class="kpi warn">
+        <div class="kpi-label">Предельная цена</div>
+        <div class="kpi-value">{{ product.price_limit|money }} ₸</div>
+        <div class="kpi-sub">регулируемая</div>
+    </div>
+    {% endif %}
+    <div class="kpi">
+        <div class="kpi-label">В избранном</div>
+        <div class="kpi-value">★ {{ fav_count }}</div>
+        <div class="kpi-sub">пользователей сохранили</div>
+    </div>
+    {% if sub_count %}
+    <div class="kpi warn">
+        <div class="kpi-label">Ждут поступления</div>
+        <div class="kpi-value">{{ sub_count }}</div>
+        <div class="kpi-sub">подписок</div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="grid grid-equal">
+    <div class="panel">
+        <div class="panel-header"><div class="panel-title">Карточка товара</div></div>
+        <div class="panel-body flush">
+            <table>
+                <tbody>
+                    <tr><td class="muted">Штрихкод</td><td class="mono">{{ product.barcode or '—' }}</td></tr>
+                    <tr><td class="muted">Производитель</td><td>{{ product.producer or '—' }}</td></tr>
+                    <tr><td class="muted">Срок годности</td><td>{{ product.expiration_date or '—' }}</td></tr>
+                    <tr><td class="muted">Серия</td><td class="small">{{ product.series or '—' }}</td></tr>
+                    <tr><td class="muted">НДС</td><td>{{ "Да" if product.nds else "Нет" }}</td></tr>
+                    <tr><td class="muted">Упаковок</td><td>{{ product.rest_pack }}</td></tr>
+                    {% if product.reg_num %}
+                    <tr><td class="muted">Рег. номер</td><td class="mono small">{{ product.reg_num }}</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header"><div class="panel-title">Классификация</div></div>
+        <div class="panel-body flush">
+            <table>
+                <tbody>
+                    {% if product.active_ingredient %}
+                    <tr><td class="muted">Действующее вещество</td><td>{{ product.active_ingredient }}</td></tr>
+                    {% endif %}
+                    {% if product.therapeutic_category %}
+                    <tr><td class="muted">Категория</td><td>{{ product.therapeutic_category }}</td></tr>
+                    {% endif %}
+                    {% if product.groups %}
+                    <tr><td class="muted">Группы</td><td class="small">{{ product.groups[:200] }}</td></tr>
+                    {% endif %}
+                    <tr><td class="muted">GUID</td><td class="mono small">{{ product.guid }}</td></tr>
+                    <tr><td class="muted">Обновлено</td><td class="small">{{ product.updated_at|ts(19) }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

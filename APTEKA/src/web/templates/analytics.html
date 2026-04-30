@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Аналитика — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Аналитика</div>
+        <div class="page-subtitle">Поведение пользователей и пробелы в ассортименте</div>
+    </div>
+</div>
+
+<div class="grid grid-equal">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Запросы за 30 дней</div>
+                <div class="panel-subtitle">Дневная динамика</div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="chart-wrap lg">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">По часам суток</div>
+                <div class="panel-subtitle">Средняя активность за 7 дней</div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="chart-wrap lg">
+                <canvas id="hourlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel" style="margin-bottom:1rem">
+    <div class="panel-header">
+        <div>
+            <div class="panel-title">Пользователи и запросы по платформам</div>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="chart-wrap" style="height:260px">
+            <canvas id="platformChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-equal">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Топ запросов</div>
+                <div class="panel-subtitle">Что ищут чаще всего</div>
+            </div>
+        </div>
+        <div class="panel-body flush">
+            {% if popular %}
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Запрос</th><th class="num">Раз</th><th class="num">Ср. найдено</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in popular %}
+                    <tr>
+                        <td class="dim">{{ loop.index }}</td>
+                        <td>{{ q.query }}</td>
+                        <td class="num strong">{{ q.count }}</td>
+                        <td class="num">{{ "%.1f"|format(q.avg_results) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет данных</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Пробелы ассортимента</div>
+                <div class="panel-subtitle">Запросы с 0 результатов</div>
+            </div>
+        </div>
+        <div class="panel-body flush">
+            {% if zero_results %}
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Запрос</th><th class="num">Попыток</th><th>Последний раз</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in zero_results %}
+                    <tr>
+                        <td class="dim">{{ loop.index }}</td>
+                        <td>{{ q.query }}</td>
+                        <td class="num"><span class="badge badge-warn">{{ q.count }}</span></td>
+                        <td class="muted small">{{ q.last_seen|ts(19) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Все запросы находили товар</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#8691a8';
+Chart.defaults.borderColor = '#1f2636';
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+const timelineData = {{ timeline|tojson }};
+new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: {
+        labels: timelineData.map(d => d.day.slice(5)),
+        datasets: [{
+            label: 'Запросы',
+            data: timelineData.map(d => d.cnt),
+            borderColor: '#4aa3ff',
+            backgroundColor: 'rgba(74, 163, 255, 0.1)',
+            fill: true,
+            tension: 0.35,
+        }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+    }
+});
+
+const hourlyData = {{ hourly|tojson }};
+new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: {
+        labels: hourlyData.map(d => d.hour + ':00'),
+        datasets: [{
+            label: 'Запросов',
+            data: hourlyData.map(d => d.cnt),
+            backgroundColor: 'rgba(124, 92, 255, 0.6)',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+    }
+});
+
+const platformData = {{ platform_split|tojson }};
+new Chart(document.getElementById('platformChart'), {
+    type: 'bar',
+    data: {
+        labels: platformData.platforms.map(p => p === 'whatsapp' ? 'WhatsApp' : 'Telegram'),
+        datasets: [
+            { label: 'Пользователи', data: platformData.users, backgroundColor: 'rgba(74, 163, 255, 0.7)', borderRadius: 6 },
+            { label: 'Запросы', data: platformData.searches, backgroundColor: 'rgba(52, 211, 153, 0.7)', borderRadius: 6 },
+        ]
+    },
+    options: {
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false } } }
+    }
+});
+</script>
+{% endblock %}

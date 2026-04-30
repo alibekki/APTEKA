@@ -1,0 +1,9 @@
+доступ на api
+token f3knmgr6986tsbwl5b35co
+device 637
+bin 851222300056 
+
+запросы 
+getRest 
+checkToken 
+getRestOnTime

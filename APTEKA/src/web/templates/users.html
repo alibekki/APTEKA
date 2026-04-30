@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Пользователи — APTEKA Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Пользователи</div>
+        <div class="page-subtitle">Всего {{ total }}</div>
+    </div>
+    <form method="GET" action="{{ url_for('users_page') }}" class="form-row">
+        <select name="platform" class="select" onchange="this.form.submit()">
+            <option value="">Все платформы</option>
+            <option value="telegram" {% if platform == 'telegram' %}selected{% endif %}>Telegram</option>
+            <option value="whatsapp" {% if platform == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+        </select>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="panel-body flush">
+        {% if users %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Платформа</th>
+                    <th>Username</th>
+                    <th class="num">Запросов</th>
+                    <th>Регистрация</th>
+                    <th>Активность</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('user_detail', chat_id=u.chat_id) }}">
+                            {{ u.first_name or '—' }}{% if u.last_name %} {{ u.last_name }}{% endif %}
+                        </a>
+                        <div class="small dim mono">{{ u.chat_id }}</div>
+                    </td>
+                    <td>
+                        {% if u.platform == 'whatsapp' %}
+                        <span class="badge badge-success">WhatsApp</span>
+                        {% else %}
+                        <span class="badge badge-accent">Telegram</span>
+                        {% endif %}
+                    </td>
+                    <td class="muted">{{ ('@' + u.username) if u.username else '—' }}</td>
+                    <td class="num strong">{{ u.search_count }}</td>
+                    <td class="muted small">{{ u.created_at|ts(16) }}</td>
+                    <td class="muted small">{{ u.last_active|ts(16) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">Пока нет пользователей</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="?platform={{ platform }}&page={{ page - 1 }}">← Назад</a>
+    {% endif %}
+    {% for p in range(1, pages + 1) %}
+        {% if p == page %}<span class="current">{{ p }}</span>
+        {% elif p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+        <a href="?platform={{ platform }}&page={{ p }}">{{ p }}</a>
+        {% elif p == page - 3 or p == page + 3 %}<span class="ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+    {% if page < pages %}
+    <a href="?platform={{ platform }}&page={{ page + 1 }}">Вперёд →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

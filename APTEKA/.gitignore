@@ -6,6 +6,9 @@
 # API credentials
 доступ на api.txt
 
+# Local/reference documents
+*.pdf
+
 # Database
 data/
 *.db

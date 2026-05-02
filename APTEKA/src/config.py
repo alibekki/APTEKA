@@ -53,7 +53,7 @@ class WazzupConfig:
 @dataclass(frozen=True)
 class PharmacyConfig:
     """Physical pharmacy info — shown to clients when they ask about
-    location, contacts, working hours, delivery, payment. Injected into the
+    location, contacts, working hours, payment. Injected into the
     AI system prompt so the consultant answers naturally from this data."""
     name: str = ""
     address: str = ""
@@ -62,7 +62,6 @@ class PharmacyConfig:
     map_url: str = ""  # Google Maps / 2GIS / Yandex link
     instagram: str = ""
     whatsapp_link: str = ""  # wa.me/7... for sharing with clients
-    delivery: str = ""  # e.g. "Курьер по Алматы 1500₸, от 10000₸ бесплатно"
     payment: str = ""  # e.g. "Наличные, Kaspi QR, Halyk, Visa/MC"
     # Where human-escalation and reservation requests are logged (chat_id of admin)
     admin_chat_id: str = ""
@@ -70,7 +69,7 @@ class PharmacyConfig:
     @property
     def has_any(self) -> bool:
         return any([self.name, self.address, self.phone, self.hours,
-                    self.map_url, self.delivery, self.payment])
+                    self.map_url, self.payment])
 
     def _is_open_now(self) -> str:
         """Compute 'open/closed now' from hours string.
@@ -128,7 +127,7 @@ class PharmacyConfig:
         now = datetime.now()
         weekday_ru = ["понедельник", "вторник", "среда", "четверг",
                       "пятница", "суббота", "воскресенье"][now.weekday()]
-        lines = ["ИНФОРМАЦИЯ ОБ АПТЕКЕ (используй при вопросах о местоположении, контактах, режиме работы, доставке, оплате):"]
+        lines = ["ИНФОРМАЦИЯ ОБ АПТЕКЕ (используй при вопросах о местоположении, контактах, режиме работы, оплате):"]
         lines.append(f"Сейчас: {now.strftime('%Y-%m-%d %H:%M')} ({weekday_ru})")
         open_status = self._is_open_now()
         if open_status:
@@ -143,8 +142,6 @@ class PharmacyConfig:
             lines.append(f"Режим работы: {self.hours}")
         if self.map_url:
             lines.append(f"Карта / маршрут: {self.map_url}")
-        if self.delivery:
-            lines.append(f"Доставка: {self.delivery}")
         if self.payment:
             lines.append(f"Оплата: {self.payment}")
         if self.instagram:
@@ -200,7 +197,6 @@ def load_config() -> Config:
         map_url=os.getenv("PHARMACY_MAP_URL", ""),
         instagram=os.getenv("PHARMACY_INSTAGRAM", ""),
         whatsapp_link=os.getenv("PHARMACY_WHATSAPP_LINK", ""),
-        delivery=os.getenv("PHARMACY_DELIVERY", ""),
         payment=os.getenv("PHARMACY_PAYMENT", ""),
         admin_chat_id=os.getenv("PHARMACY_ADMIN_CHAT_ID", ""),
     )
